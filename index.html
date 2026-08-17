@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cuentas T</title>
+<meta name="description" content="Genera cuentas T a partir de pólizas contables — captura manual o desde Excel/CSV." />
+<link rel="manifest" href="./manifest.json" />
+<meta name="theme-color" content="#1F2D3D" />
+<link rel="apple-touch-icon" href="./icons/icon-192.png" />
+<link rel="icon" href="./icons/icon-192.png" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    --paper: #EAF1E8;
+    --card: #F9FBF6;
+    --ink: #1F2D3D;
+    --rule: #cfe0cb;
+    --rule-strong: #8FB587;
+    --gold: #A9791F;
+    --brick: #A13D2B;
+    --forest: #2F6D4F;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+  }
+
+  .ct-root {
+    position: relative;
+    background: var(--paper);
+    background-image: linear-gradient(var(--rule) 1px, transparent 1px);
+    background-size: 100% 34px;
+    min-height: 100vh;
+    padding: 40px 24px 64px 84px;
+  }
+  .ct-root::before {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0; left: 56px;
+    width: 1px;
+    background: rgba(161,61,43,0.35);
+    pointer-events: none;
+  }
+  @media (max-width: 480px) {
+    .ct-root { padding-left: 56px; }
+    .ct-root::before { left: 32px; }
+  }
+
+  .ct-header {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    flex-wrap: wrap; gap: 16px;
+    max-width: 1100px; margin: 0 auto 24px;
+    border-bottom: 3px double var(--rule-strong);
+    padding-bottom: 14px;
+  }
+  .ct-title { display: flex; align-items: center; gap: 12px; }
+  .ct-badge {
+    width: 38px; height: 38px; border-radius: 4px;
+    background: var(--ink); border: 1.5px solid var(--gold);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--paper); font-weight: 700; font-size: 18px;
+    flex-shrink: 0;
+  }
+  .ct-title-text { display: flex; flex-direction: column; }
+  .ct-title h1 { font-size: 32px; margin: 0; letter-spacing: 0.3px; font-weight: 700; }
+  .eyebrow {
+    font-family: 'Courier New', monospace; font-size: 11px; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--gold); font-weight: bold;
+  }
+  .ct-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn {
+    font-family: 'Courier New', monospace; font-size: 13px; letter-spacing: 0.5px;
+    padding: 10px 16px; border-radius: 3px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px;
+    border: 1.5px solid var(--ink); background: transparent; color: var(--ink);
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  .btn:hover { background: var(--ink); color: var(--paper); }
+  .btn.add { background: var(--ink); color: var(--paper); }
+  .btn.add:hover { background: #33465e; }
+
+  .ct-form {
+    max-width: 1100px; margin: 0 auto 24px;
+    background: var(--card); border: 1.5px solid var(--ink); border-radius: 2px;
+    padding: 14px 18px 16px;
+  }
+  .ct-form-top { display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap; }
+  .ct-form-top .field:first-child { width: 100px; }
+  .ct-form-top .field:last-child { flex: 1; min-width: 180px; }
+  .ct-lineas { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+  .ct-linea-row {
+    display: grid; grid-template-columns: 1.6fr 130px 130px 28px;
+    gap: 12px; align-items: end;
+  }
+  .linea-remove {
+    background: none; border: none; cursor: pointer; color: #99a; font-size: 15px;
+    display: inline-flex; align-items: center; padding: 6px 0;
+  }
+  .linea-remove:hover { color: var(--brick); }
+  .ct-form-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 14px; }
+  .ct-linea-diff { font-family: 'Courier New', monospace; font-size: 12.5px; color: var(--brick); }
+  .ct-linea-diff.ok { color: var(--forest); }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label {
+    font-family: 'Courier New', monospace; font-size: 10.5px; letter-spacing: 1px;
+    text-transform: uppercase; color: #5a6a5e;
+  }
+  .field input {
+    border: none; border-bottom: 1.5px solid var(--ink); background: transparent;
+    font-family: 'Courier New', monospace; font-size: 14px; padding: 5px 2px;
+    outline: none; color: var(--ink); width: 100%;
+  }
+  .field input:focus { border-color: var(--gold); }
+  .form-error { margin-top: 10px; font-family: 'Courier New', monospace; font-size: 12.5px; color: var(--brick); }
+  @media (max-width: 640px) {
+    .ct-linea-row { grid-template-columns: 1fr 1fr; }
+  }
+
+  .ct-drop {
+    max-width: 1100px; margin: 0 auto 32px;
+    border: 2px dashed var(--rule-strong); border-radius: 6px;
+    background: rgba(255,255,255,0.45);
+    padding: 36px 20px; text-align: center; cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .ct-drop.drag { background: rgba(143,181,135,0.3); border-color: var(--gold); }
+  .ct-drop-icon { font-size: 26px; }
+  .ct-drop p { margin: 6px 0 0; font-family: 'Courier New', monospace; font-size: 13px; color: #4a5a4a; }
+  .ct-drop strong { font-size: 16px; display: block; margin-top: 8px; }
+
+  .ct-filebar {
+    max-width: 1100px; margin: 0 auto 12px;
+    font-family: 'Courier New', monospace; font-size: 13px; color: #445;
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  }
+  .ct-toggle-detalle {
+    background: none; border: none; cursor: pointer; color: var(--gold);
+    font-family: 'Courier New', monospace; font-size: 13px;
+    display: inline-flex; align-items: center; gap: 4px; padding: 0;
+  }
+  .ct-balance {
+    max-width: 1100px; margin: 0 auto 20px; display: flex; gap: 8px; align-items: center;
+    font-family: 'Courier New', monospace; font-size: 13px; padding: 10px 14px;
+    border-radius: 3px;
+  }
+  .ct-balance.ok { background: rgba(47,109,79,0.1); color: var(--forest); }
+  .ct-balance.off { background: rgba(161,61,43,0.08); color: var(--brick); }
+
+  .ct-detalle {
+    max-width: 1100px; margin: 0 auto 24px; background: var(--card);
+    border: 1.5px solid var(--ink); border-radius: 2px; overflow-x: auto;
+  }
+  .ct-detalle table { width: 100%; border-collapse: collapse; font-family: 'Courier New', monospace; font-size: 12.5px; }
+  .ct-detalle th {
+    text-align: left; padding: 8px 10px; border-bottom: 1.5px solid var(--ink);
+    font-size: 10.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--gold);
+  }
+  .ct-detalle td { padding: 6px 10px; border-bottom: 1px dotted var(--rule-strong); white-space: nowrap; }
+  .ct-detalle tr:last-child td { border-bottom: none; }
+  .row-delete { background: none; border: none; cursor: pointer; color: #99a; padding: 2px; font-size: 13px; }
+  .row-delete:hover { color: var(--brick); }
+
+  .ct-error {
+    max-width: 1100px; margin: 0 auto 24px;
+    background: rgba(161,61,43,0.08); border-left: 3px solid var(--brick);
+    padding: 12px 16px; font-family: 'Courier New', monospace; font-size: 13px; color: var(--brick);
+  }
+
+  .ct-grid {
+    max-width: 1100px; margin: 0 auto; display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 22px;
+  }
+  .tcard { background: var(--card); border: 1.5px solid var(--ink); border-radius: 2px; box-shadow: 3px 3px 0 rgba(31,45,61,0.08); }
+  .tcard-header { text-align: center; font-weight: 700; font-size: 15px; padding: 10px 8px 8px; border-bottom: 2px solid var(--ink); }
+  .tcard-subhead {
+    display: grid; grid-template-columns: 1fr 1fr;
+    font-family: 'Courier New', monospace; font-size: 10.5px; letter-spacing: 1.5px;
+    font-weight: 700; color: var(--gold); border-bottom: 1.5px solid var(--ink);
+  }
+  .tcard-subhead > div { padding: 4px 10px; text-align: center; }
+  .tcard-subhead > div:first-child { border-right: 1.5px solid var(--ink); }
+  .tcard-body { display: grid; grid-template-columns: 1fr 1fr; min-height: 36px; }
+  .tcol { padding: 6px 10px; }
+  .tcol-debe { border-right: 1.5px solid var(--ink); }
+  .trow { font-family: 'Courier New', monospace; font-size: 13px; text-align: right; padding: 2px 0; border-bottom: 1px dotted var(--rule-strong); cursor: help; }
+  .tcol-debe .trow { text-align: left; }
+  .tcard-totals { display: grid; grid-template-columns: 1fr 1fr; font-family: 'Courier New', monospace; font-weight: 700; font-size: 13px; }
+  .tcard-totals .ttotal { padding: 6px 10px; border-top: 2px solid var(--ink); border-bottom: 4px double var(--ink); text-align: right; }
+  .tcard-totals .ttotal:first-child { border-right: 1.5px solid var(--ink); text-align: left; }
+  .tcard-saldo { padding: 8px 10px 10px; font-family: 'Courier New', monospace; font-size: 12.5px; text-align: center; color: #445; }
+  .saldo-cero { color: var(--forest); font-weight: bold; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+// ---------- Datos y utilidades ----------
+
+const STORAGE_KEY = 'cuentasT_movimientos_v1';
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
+function money(n) {
+  return (n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function normalizeHeader(h) {
+  return String(h || '').trim().toLowerCase();
+}
+
+function findKey(row, candidates) {
+  const keys = Object.keys(row);
+  for (const c of candidates) {
+    const found = keys.find((k) => normalizeHeader(k) === c);
+    if (found) return found;
+  }
+  return null;
+}
+
+function parseRows(rows) {
+  if (!rows || !rows.length) return { movimientos: [], error: 'El archivo está vacío.' };
+  const sample = rows[0];
+  const cuentaKey = findKey(sample, ['cuenta', 'cuenta contable', 'nombre de cuenta']);
+  const conceptoKey = findKey(sample, ['concepto', 'descripcion', 'descripción']);
+  const debeKey = findKey(sample, ['debe', 'cargo', 'cargos']);
+  const haberKey = findKey(sample, ['haber', 'abono', 'abonos', 'credito', 'crédito']);
+  const fechaKey = findKey(sample, ['fecha']);
+
+  if (!cuentaKey || (!debeKey && !haberKey)) {
+    return { movimientos: [], error: 'No encontré columnas de "Cuenta" y "Debe"/"Haber". Revisa los encabezados del archivo.' };
+  }
+
+  const movimientos = [];
+  rows.forEach((row) => {
+    const cuenta = String(row[cuentaKey] || '').trim();
+    if (!cuenta) return;
+    const debe = parseFloat(row[debeKey]) || 0;
+    const haber = parseFloat(row[haberKey]) || 0;
+    if (!debe && !haber) return;
+    const concepto = conceptoKey ? String(row[conceptoKey] || '') : '';
+    const fecha = fechaKey ? String(row[fechaKey] || '') : '';
+    movimientos.push({ cuenta, concepto, fecha, debe, haber });
+  });
+
+  return { movimientos, error: null };
+}
+
+function groupByCuenta(movimientos) {
+  const accounts = {};
+  movimientos.forEach((m) => {
+    if (!accounts[m.cuenta]) accounts[m.cuenta] = { debitos: [], creditos: [] };
+    if (m.debe) accounts[m.cuenta].debitos.push({ monto: m.debe, concepto: m.concepto, fecha: m.fecha });
+    if (m.haber) accounts[m.cuenta].creditos.push({ monto: m.haber, concepto: m.concepto, fecha: m.fecha });
+  });
+  return accounts;
+}
+
+function buildCuentasTSheet(accounts) {
+  const aoa = [];
+  const merges = [];
+  Object.entries(accounts).forEach(([nombre, mov]) => {
+    merges.push({ s: { r: aoa.length, c: 0 }, e: { r: aoa.length, c: 1 } });
+    aoa.push([nombre, '']);
+    aoa.push(['DEBE', 'HABER']);
+
+    const totalDebe = mov.debitos.reduce((s, d) => s + d.monto, 0);
+    const totalHaber = mov.creditos.reduce((s, c) => s + c.monto, 0);
+    const filas = Math.max(mov.debitos.length, mov.creditos.length);
+    for (let i = 0; i < filas; i++) {
+      aoa.push([mov.debitos[i] ? mov.debitos[i].monto : '', mov.creditos[i] ? mov.creditos[i].monto : '']);
+    }
+    aoa.push([totalDebe, totalHaber]);
+
+    const saldo = totalDebe - totalHaber;
+    const saldoTexto = saldo === 0 ? 'Saldado' : saldo > 0 ? `Saldo deudor: ${money(saldo)}` : `Saldo acreedor: ${money(-saldo)}`;
+    merges.push({ s: { r: aoa.length, c: 0 }, e: { r: aoa.length, c: 1 } });
+    aoa.push([saldoTexto, '']);
+    aoa.push(['', '']);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!merges'] = merges;
+  ws['!cols'] = [{ wch: 24 }, { wch: 24 }];
+  return ws;
+}
+
+function buildMovimientosSheet(movimientos) {
+  const aoa = [['Fecha', 'Cuenta', 'Concepto', 'Debe', 'Haber']];
+  movimientos.forEach((m) => aoa.push([m.fecha, m.cuenta, m.concepto, m.debe || '', m.haber || '']));
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{ wch: 10 }, { wch: 20 }, { wch: 32 }, { wch: 12 }, { wch: 12 }];
+  return ws;
+}
+
+const SAMPLE_ROWS = [
+  { Fecha: '01/08', Cuenta: 'Caja', Concepto: 'Aportación inicial de capital', Debe: 50000, Haber: '' },
+  { Fecha: '01/08', Cuenta: 'Capital social', Concepto: 'Aportación inicial de capital', Debe: '', Haber: 50000 },
+  { Fecha: '03/08', Cuenta: 'Mobiliario y equipo', Concepto: 'Compra de mobiliario', Debe: 12000, Haber: '' },
+  { Fecha: '03/08', Cuenta: 'Caja', Concepto: 'Compra de mobiliario', Debe: '', Haber: 12000 },
+  { Fecha: '05/08', Cuenta: 'Bancos', Concepto: 'Depósito de efectivo', Debe: 20000, Haber: '' },
+  { Fecha: '05/08', Cuenta: 'Caja', Concepto: 'Depósito de efectivo', Debe: '', Haber: 20000 },
+  { Fecha: '08/08', Cuenta: 'Proveedores', Concepto: 'Compra de mercancía a crédito', Debe: '', Haber: 8000 },
+  { Fecha: '08/08', Cuenta: 'Almacén', Concepto: 'Compra de mercancía a crédito', Debe: 8000, Haber: '' },
+  { Fecha: '15/08', Cuenta: 'Bancos', Concepto: 'Venta de mercancía', Debe: 15000, Haber: '' },
+  { Fecha: '15/08', Cuenta: 'Ventas', Concepto: 'Venta de mercancía', Debe: '', Haber: 15000 },
+  { Fecha: '20/08', Cuenta: 'Proveedores', Concepto: 'Pago a proveedor', Debe: 5000, Haber: '' },
+  { Fecha: '20/08', Cuenta: 'Bancos', Concepto: 'Pago a proveedor', Debe: '', Haber: 5000 },
+];
+
+function loadMovimientos() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveMovimientos(movs) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(movs));
+  } catch (e) {
+    console.error('No se pudo guardar automáticamente:', e);
+  }
+}
+
+// ---------- Estado ----------
+
+const state = {
+  movimientos: loadMovimientos(),
+  fileName: null,
+  error: null,
+  showDetalle: false,
+  formFecha: '',
+  formConcepto: '',
+  formLineas: [{ cuenta: '', debe: '', haber: '' }],
+  formError: null,
+};
+
+// ---------- Acciones ----------
+
+function processFile(file) {
+  state.error = null;
+  state.fileName = file.name;
+  const isCSV = /\.csv$/i.test(file.name);
+  if (isCSV) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      Papa.parse(e.target.result, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (res) => {
+          const { movimientos: mov, error: err } = parseRows(res.data);
+          if (err) { state.error = err; } else { state.movimientos = mov; saveMovimientos(mov); }
+          render();
+        },
+        error: () => { state.error = 'No pude leer el archivo CSV.'; render(); },
+      });
+    };
+    reader.readAsText(file);
+  } else {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+        const { movimientos: mov, error: err } = parseRows(rows);
+        if (err) { state.error = err; } else { state.movimientos = mov; saveMovimientos(mov); }
+      } catch (err) {
+        state.error = 'No pude leer el archivo. Verifica que sea un Excel válido.';
+      }
+      render();
+    };
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+function loadSample() {
+  state.error = null;
+  state.fileName = 'Ejemplo: pólizas de agosto';
+  const { movimientos: mov } = parseRows(SAMPLE_ROWS);
+  state.movimientos = mov;
+  saveMovimientos(mov);
+  render();
+}
+
+function exportExcel() {
+  const accounts = groupByCuenta(state.movimientos);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, buildCuentasTSheet(accounts), 'Cuentas T');
+  XLSX.utils.book_append_sheet(wb, buildMovimientosSheet(state.movimientos), 'Movimientos');
+  XLSX.writeFile(wb, 'cuentas-t.xlsx');
+}
+
+function resetAll() {
+  state.movimientos = [];
+  state.fileName = null;
+  state.error = null;
+  state.formFecha = '';
+  state.formConcepto = '';
+  state.formLineas = [{ cuenta: '', debe: '', haber: '' }];
+  state.formError = null;
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+  render();
+}
+
+function addLinea() {
+  state.formLineas.push({ cuenta: '', debe: '', haber: '' });
+  render();
+}
+
+function removeLinea(index) {
+  if (state.formLineas.length <= 1) return;
+  state.formLineas.splice(index, 1);
+  render();
+}
+
+function guardarPoliza() {
+  const fecha = state.formFecha.trim();
+  const concepto = state.formConcepto.trim();
+  const lineasValidas = [];
+  for (const l of state.formLineas) {
+    const cuenta = (l.cuenta || '').trim();
+    const debe = parseFloat(l.debe) || 0;
+    const haber = parseFloat(l.haber) || 0;
+    const vacia = !cuenta && !debe && !haber;
+    if (vacia) continue;
+    if (!cuenta) { state.formError = 'Falta el nombre de la cuenta en una de las líneas.'; render(); return; }
+    if (!debe && !haber) { state.formError = `Falta un monto en Debe o Haber en la línea de "${cuenta}".`; render(); return; }
+    lineasValidas.push({ cuenta, concepto, fecha, debe, haber });
+  }
+  if (lineasValidas.length === 0) { state.formError = 'Agrega al menos una línea con cuenta y monto.'; render(); return; }
+  state.formError = null;
+  state.movimientos = [...state.movimientos, ...lineasValidas];
+  saveMovimientos(state.movimientos);
+  state.formConcepto = '';
+  state.formLineas = [{ cuenta: '', debe: '', haber: '' }];
+  render();
+}
+
+function toggleDetalle() {
+  state.showDetalle = !state.showDetalle;
+  render();
+}
+
+function removeMovimiento(index) {
+  state.movimientos.splice(index, 1);
+  saveMovimientos(state.movimientos);
+  render();
+}
+
+function updateFormDiff() {
+  const el = document.getElementById('form-diff');
+  if (!el) return;
+  const sumDebeForm = state.formLineas.reduce((s, l) => s + (parseFloat(l.debe) || 0), 0);
+  const sumHaberForm = state.formLineas.reduce((s, l) => s + (parseFloat(l.haber) || 0), 0);
+  const diffForm = sumDebeForm - sumHaberForm;
+  el.classList.toggle('ok', diffForm === 0);
+  el.textContent = diffForm === 0
+    ? '✓ Esta póliza cuadra'
+    : `Diferencia: ${money(Math.abs(diffForm))} (falta en ${diffForm > 0 ? 'Haber' : 'Debe'})`;
+}
+
+// ---------- Render ----------
+
+function accountTHtml(nombre, mov) {
+  const totalDebe = mov.debitos.reduce((s, d) => s + d.monto, 0);
+  const totalHaber = mov.creditos.reduce((s, c) => s + c.monto, 0);
+  const saldo = totalDebe - totalHaber;
+  const saldoHtml = saldo === 0
+    ? `<span class="saldo-cero">Saldado</span>`
+    : saldo > 0
+      ? `<span>Saldo deudor: <b>${money(saldo)}</b></span>`
+      : `<span>Saldo acreedor: <b>${money(-saldo)}</b></span>`;
+
+  return `
+    <div class="tcard">
+      <div class="tcard-header">${esc(nombre)}</div>
+      <div class="tcard-subhead"><div>DEBE</div><div>HABER</div></div>
+      <div class="tcard-body">
+        <div class="tcol tcol-debe">
+          ${mov.debitos.map((d) => `<div class="trow" title="${esc([d.fecha, d.concepto].filter(Boolean).join(' — '))}">${money(d.monto)}</div>`).join('')}
+        </div>
+        <div class="tcol tcol-haber">
+          ${mov.creditos.map((c) => `<div class="trow" title="${esc([c.fecha, c.concepto].filter(Boolean).join(' — '))}">${money(c.monto)}</div>`).join('')}
+        </div>
+      </div>
+      <div class="tcard-totals">
+        <div class="ttotal">${money(totalDebe)}</div>
+        <div class="ttotal">${money(totalHaber)}</div>
+      </div>
+      <div class="tcard-saldo">${saldoHtml}</div>
+    </div>
+  `;
+}
+
+function render() {
+  const hasData = state.movimientos.length > 0;
+  const accounts = groupByCuenta(state.movimientos);
+  const cuentasExistentes = [...new Set(state.movimientos.map((m) => m.cuenta))];
+  const totalDebeGlobal = state.movimientos.reduce((s, m) => s + (m.debe || 0), 0);
+  const totalHaberGlobal = state.movimientos.reduce((s, m) => s + (m.haber || 0), 0);
+  const diffGlobal = totalDebeGlobal - totalHaberGlobal;
+  const sumDebeForm = state.formLineas.reduce((s, l) => s + (parseFloat(l.debe) || 0), 0);
+  const sumHaberForm = state.formLineas.reduce((s, l) => s + (parseFloat(l.haber) || 0), 0);
+  const diffForm = sumDebeForm - sumHaberForm;
+
+  const html = `
+    <div class="ct-header">
+      <div class="ct-title">
+        <div class="ct-badge">T</div>
+        <div class="ct-title-text">
+          <span class="eyebrow">Práctica contable</span>
+          <h1>Cuentas T</h1>
+        </div>
+      </div>
+      <div class="ct-actions">
+        <button class="btn" data-action="load-sample">Cargar ejemplo</button>
+        <button class="btn" data-action="trigger-upload">Subir archivo</button>
+        ${hasData ? '<button class="btn add" data-action="export-excel">Descargar Excel</button>' : ''}
+        ${hasData ? '<button class="btn" data-action="reset-all">Limpiar todo</button>' : ''}
+        <input id="file-input" type="file" accept=".xlsx,.xls,.csv" style="display:none" />
+      </div>
+    </div>
+
+    <div class="ct-form">
+      <span class="eyebrow">Nuevo movimiento</span>
+      <div class="ct-form-top">
+        <div class="field">
+          <label>Fecha</label>
+          <input type="text" placeholder="DD/MM" data-field="fecha" value="${esc(state.formFecha)}" />
+        </div>
+        <div class="field">
+          <label>Concepto</label>
+          <input type="text" placeholder="Descripción de la póliza" data-field="concepto" value="${esc(state.formConcepto)}" />
+        </div>
+      </div>
+      <div class="ct-lineas">
+        ${state.formLineas.map((l, i) => `
+          <div class="ct-linea-row">
+            <div class="field">
+              <label>Cuenta</label>
+              <input type="text" list="cuentas-existentes" placeholder="Ej. Caja" data-field="linea-cuenta" data-index="${i}" value="${esc(l.cuenta)}" />
+            </div>
+            <div class="field">
+              <label>Debe</label>
+              <input type="number" step="0.01" placeholder="0.00" data-field="linea-debe" data-index="${i}" value="${esc(l.debe)}" />
+            </div>
+            <div class="field">
+              <label>Haber</label>
+              <input type="number" step="0.01" placeholder="0.00" data-field="linea-haber" data-index="${i}" value="${esc(l.haber)}" />
+            </div>
+            ${state.formLineas.length > 1 ? `<button class="linea-remove" data-action="remove-linea" data-index="${i}" title="Quitar línea">✕</button>` : ''}
+          </div>
+        `).join('')}
+        <datalist id="cuentas-existentes">
+          ${cuentasExistentes.map((c) => `<option value="${esc(c)}"></option>`).join('')}
+        </datalist>
+      </div>
+      <div class="ct-form-actions">
+        <button class="btn" data-action="add-linea">+ Agregar línea</button>
+        ${state.formLineas.length > 1 ? `<span id="form-diff" class="ct-linea-diff ${diffForm === 0 ? 'ok' : ''}">${diffForm === 0 ? '✓ Esta póliza cuadra' : `Diferencia: ${money(Math.abs(diffForm))} (falta en ${diffForm > 0 ? 'Haber' : 'Debe'})`}</span>` : ''}
+        <button class="btn add" data-action="guardar-poliza" style="margin-left:auto">${state.formLineas.length > 1 ? 'Guardar póliza' : 'Agregar'}</button>
+      </div>
+      ${state.formError ? `<div class="form-error">${esc(state.formError)}</div>` : ''}
+    </div>
+
+    ${!hasData ? `
+      <div class="ct-drop" id="dropzone" data-action="trigger-upload">
+        <div class="ct-drop-icon">↑</div>
+        <strong>Sube tu archivo de pólizas</strong>
+        <p>Excel o CSV con columnas: Cuenta, Concepto, Debe, Haber — arrastra aquí o haz clic</p>
+      </div>
+    ` : ''}
+
+    ${(state.fileName || hasData) ? `
+      <div class="ct-filebar">
+        <span>
+          ${state.fileName ? `${esc(state.fileName)} · ` : ''}
+          ${state.movimientos.length} movimiento${state.movimientos.length === 1 ? '' : 's'} capturado${state.movimientos.length === 1 ? '' : 's'}
+        </span>
+        ${hasData ? `<button class="ct-toggle-detalle" data-action="toggle-detalle">${state.showDetalle ? '▴ Ocultar detalle' : '▾ Ver detalle'}</button>` : ''}
+      </div>
+    ` : ''}
+
+    ${hasData ? `
+      <div class="ct-balance ${diffGlobal === 0 ? 'ok' : 'off'}">
+        ${diffGlobal === 0
+          ? `✓ Balanza cuadrada — Debe y Haber son iguales (${money(totalDebeGlobal)})`
+          : `Descuadre de ${money(Math.abs(diffGlobal))} (${diffGlobal > 0 ? 'sobra en Debe' : 'sobra en Haber'})`}
+      </div>
+    ` : ''}
+
+    ${state.showDetalle && hasData ? `
+      <div class="ct-detalle">
+        <table>
+          <thead><tr><th>Fecha</th><th>Cuenta</th><th>Concepto</th><th>Debe</th><th>Haber</th><th></th></tr></thead>
+          <tbody>
+            ${state.movimientos.map((m, i) => `
+              <tr>
+                <td>${esc(m.fecha)}</td>
+                <td>${esc(m.cuenta)}</td>
+                <td>${esc(m.concepto)}</td>
+                <td>${m.debe ? money(m.debe) : ''}</td>
+                <td>${m.haber ? money(m.haber) : ''}</td>
+                <td><button class="row-delete" data-action="remove-movimiento" data-index="${i}" title="Eliminar movimiento">✕</button></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    ` : ''}
+
+    ${state.error ? `<div class="ct-error"><strong>Aviso:</strong> ${esc(state.error)}</div>` : ''}
+
+    ${hasData && Object.keys(accounts).length > 0 ? `
+      <div class="ct-grid">
+        ${Object.entries(accounts).map(([nombre, mov]) => accountTHtml(nombre, mov)).join('')}
+      </div>
+    ` : ''}
+  `;
+
+  document.getElementById('app').innerHTML = `<div class="ct-root">${html}</div>`;
+}
+
+// ---------- Delegación de eventos ----------
+
+document.addEventListener('DOMContentLoaded', () => {
+  render();
+
+  const app = document.getElementById('app');
+
+  app.addEventListener('click', (e) => {
+    const actionEl = e.target.closest('[data-action]');
+    if (!actionEl) return;
+    const action = actionEl.dataset.action;
+    const index = actionEl.dataset.index !== undefined ? parseInt(actionEl.dataset.index, 10) : null;
+
+    if (action === 'load-sample') loadSample();
+    else if (action === 'trigger-upload') document.getElementById('file-input').click();
+    else if (action === 'export-excel') exportExcel();
+    else if (action === 'reset-all') resetAll();
+    else if (action === 'add-linea') addLinea();
+    else if (action === 'remove-linea') removeLinea(index);
+    else if (action === 'guardar-poliza') guardarPoliza();
+    else if (action === 'toggle-detalle') toggleDetalle();
+    else if (action === 'remove-movimiento') removeMovimiento(index);
+  });
+
+  app.addEventListener('input', (e) => {
+    const field = e.target.dataset.field;
+    if (!field) return;
+    const index = e.target.dataset.index !== undefined ? parseInt(e.target.dataset.index, 10) : null;
+
+    if (field === 'fecha') state.formFecha = e.target.value;
+    else if (field === 'concepto') state.formConcepto = e.target.value;
+    else if (field === 'linea-cuenta') state.formLineas[index].cuenta = e.target.value;
+    else if (field === 'linea-debe') { state.formLineas[index].debe = e.target.value; updateFormDiff(); }
+    else if (field === 'linea-haber') { state.formLineas[index].haber = e.target.value; updateFormDiff(); }
+  });
+
+  app.addEventListener('change', (e) => {
+    if (e.target.id === 'file-input' && e.target.files[0]) {
+      processFile(e.target.files[0]);
+      e.target.value = '';
+    }
+  });
+
+  app.addEventListener('dragover', (e) => {
+    const dz = e.target.closest('#dropzone');
+    if (dz) { e.preventDefault(); dz.classList.add('drag'); }
+  });
+  app.addEventListener('dragleave', (e) => {
+    const dz = e.target.closest('#dropzone');
+    if (dz) dz.classList.remove('drag');
+  });
+  app.addEventListener('drop', (e) => {
+    const dz = e.target.closest('#dropzone');
+    if (dz) {
+      e.preventDefault();
+      dz.classList.remove('drag');
+      const file = e.dataTransfer.files[0];
+      if (file) processFile(file);
+    }
+  });
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch((err) => console.error('SW error:', err));
+    });
+  }
+});
+</script>
+</body>
+</html>

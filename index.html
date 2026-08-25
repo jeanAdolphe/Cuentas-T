@@ -82,6 +82,31 @@
   .btn:hover { background: var(--ink); color: var(--paper); }
   .btn.add { background: var(--ink); color: var(--paper); }
   .btn.add:hover { background: #33465e; }
+  select.btn { cursor: pointer; -webkit-appearance: none; appearance: none; padding-right: 22px; }
+
+  .ct-guia-toggle { max-width: 1100px; margin: 0 auto 16px; }
+  .ct-help-link {
+    background: none; border: none; cursor: pointer; color: var(--gold);
+    font-family: 'Courier New', monospace; font-size: 12.5px; letter-spacing: 0.5px;
+    text-decoration: underline; padding: 0;
+  }
+  .ct-guia {
+    max-width: 1100px; margin: 0 auto 20px; background: var(--card);
+    border: 1.5px solid var(--ink); border-radius: 2px; overflow-x: auto; padding: 4px 0;
+  }
+  .ct-guia table { width: 100%; border-collapse: collapse; font-family: 'Courier New', monospace; font-size: 12.5px; }
+  .ct-guia th {
+    text-align: left; padding: 8px 12px; border-bottom: 1.5px solid var(--ink);
+    font-size: 10.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--gold);
+  }
+  .ct-guia td { padding: 7px 12px; border-bottom: 1px dotted var(--rule-strong); vertical-align: top; }
+  .ct-guia tr:last-child td { border-bottom: none; }
+  .ct-guia-strong { font-weight: 700; }
+  .ct-guia-ejemplos { color: #556; }
+  .ct-guia-note {
+    margin: 10px 16px 12px; font-family: Georgia, serif; font-size: 12.5px;
+    font-style: italic; color: #556;
+  }
 
   .ct-form {
     max-width: 1100px; margin: 0 auto 24px;
@@ -127,7 +152,6 @@
     padding: 36px 20px; text-align: center; cursor: pointer;
     transition: background 0.15s ease, border-color 0.15s ease;
   }
-  .ct-drop.drag { background: rgba(143,181,135,0.3); border-color: var(--gold); }
   .ct-drop-icon { font-size: 26px; }
   .ct-drop p { margin: 6px 0 0; font-family: 'Courier New', monospace; font-size: 13px; color: #4a5a4a; }
   .ct-drop strong { font-size: 16px; display: block; margin-top: 8px; }
@@ -174,6 +198,39 @@
     max-width: 1100px; margin: 0 auto; display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 22px;
   }
+
+  .ct-tabs {
+    max-width: 1100px; margin: 0 auto 20px; display: flex; gap: 4px;
+    border-bottom: 1.5px solid var(--rule-strong);
+  }
+  .ct-tab {
+    font-family: 'Courier New', monospace; font-size: 13px; letter-spacing: 0.5px;
+    background: none; border: none; cursor: pointer; color: #5a6a5e;
+    padding: 8px 14px; border-bottom: 3px solid transparent; margin-bottom: -1.5px;
+  }
+  .ct-tab.active { color: var(--ink); border-bottom-color: var(--gold); font-weight: 700; }
+  .ct-tab:hover { color: var(--ink); }
+
+  .ct-balanza {
+    max-width: 1100px; margin: 0 auto 24px; background: var(--card);
+    border: 1.5px solid var(--ink); border-radius: 2px; overflow-x: auto;
+  }
+  .ct-balanza table { width: 100%; border-collapse: collapse; font-family: 'Courier New', monospace; font-size: 13px; }
+  .ct-balanza th {
+    text-align: right; padding: 8px 12px; border-bottom: 1.5px solid var(--ink);
+    font-size: 10.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--gold);
+  }
+  .ct-balanza th:first-child, .ct-balanza td:first-child { text-align: left; }
+  .ct-balanza td { text-align: right; padding: 6px 12px; border-bottom: 1px dotted var(--rule-strong); }
+  .ct-balanza-totales td {
+    border-top: 2px solid var(--ink); border-bottom: 4px double var(--ink) !important;
+    font-weight: 700; padding-top: 8px; padding-bottom: 8px;
+  }
+  .ct-balanza-check {
+    padding: 10px 14px; font-family: 'Courier New', monospace; font-size: 13px; text-align: center;
+  }
+  .ct-balanza-check.ok { color: var(--forest); }
+  .ct-balanza-check.off { color: var(--brick); }
   .tcard { background: var(--card); border: 1.5px solid var(--ink); border-radius: 2px; box-shadow: 3px 3px 0 rgba(31,45,61,0.08); }
   .tcard-header { text-align: center; font-weight: 700; font-size: 15px; padding: 10px 8px 8px; border-bottom: 2px solid var(--ink); }
   .tcard-subhead {
@@ -193,10 +250,38 @@
   .tcard-totals .ttotal:first-child { border-right: 1.5px solid var(--ink); text-align: left; }
   .tcard-saldo { padding: 8px 10px 10px; font-family: 'Courier New', monospace; font-size: 12.5px; text-align: center; color: #445; }
   .saldo-cero { color: var(--forest); font-weight: bold; }
+
+  .ct-toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: var(--paper); border: 1.5px solid var(--gold);
+    font-family: 'Courier New', monospace; font-size: 13px; letter-spacing: 0.3px;
+    padding: 10px 18px; border-radius: 3px; box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    opacity: 0; pointer-events: none; transition: opacity 0.25s ease, transform 0.25s ease;
+    z-index: 1000; max-width: calc(100vw - 40px); text-align: center;
+  }
+  .ct-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .ct-drag-overlay {
+    position: fixed; inset: 0; background: rgba(31,45,61,0.85);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.15s ease;
+  }
+  .ct-drag-overlay.show { opacity: 1; pointer-events: auto; }
+  .ct-drag-overlay-box {
+    border: 3px dashed var(--gold); border-radius: 8px; padding: 48px 64px;
+    color: var(--paper); font-family: 'Courier New', monospace; font-size: 16px; text-align: center;
+  }
+  .ct-drag-overlay-box small { display: block; margin-top: 8px; font-size: 12px; opacity: 0.75; }
 </style>
 </head>
 <body>
 <div id="app"></div>
+<div id="ct-drag-overlay" class="ct-drag-overlay">
+  <div class="ct-drag-overlay-box">
+    Suelta tu archivo aquí
+    <small>Excel o CSV</small>
+  </div>
+</div>
 
 <script>
 // ---------- Datos y utilidades ----------
@@ -300,19 +385,72 @@ function buildMovimientosSheet(movimientos) {
   return ws;
 }
 
-const SAMPLE_ROWS = [
-  { Fecha: '01/08', Cuenta: 'Caja', Concepto: 'Aportación inicial de capital', Debe: 50000, Haber: '' },
-  { Fecha: '01/08', Cuenta: 'Capital social', Concepto: 'Aportación inicial de capital', Debe: '', Haber: 50000 },
-  { Fecha: '03/08', Cuenta: 'Mobiliario y equipo', Concepto: 'Compra de mobiliario', Debe: 12000, Haber: '' },
-  { Fecha: '03/08', Cuenta: 'Caja', Concepto: 'Compra de mobiliario', Debe: '', Haber: 12000 },
-  { Fecha: '05/08', Cuenta: 'Bancos', Concepto: 'Depósito de efectivo', Debe: 20000, Haber: '' },
-  { Fecha: '05/08', Cuenta: 'Caja', Concepto: 'Depósito de efectivo', Debe: '', Haber: 20000 },
-  { Fecha: '08/08', Cuenta: 'Proveedores', Concepto: 'Compra de mercancía a crédito', Debe: '', Haber: 8000 },
-  { Fecha: '08/08', Cuenta: 'Almacén', Concepto: 'Compra de mercancía a crédito', Debe: 8000, Haber: '' },
-  { Fecha: '15/08', Cuenta: 'Bancos', Concepto: 'Venta de mercancía', Debe: 15000, Haber: '' },
-  { Fecha: '15/08', Cuenta: 'Ventas', Concepto: 'Venta de mercancía', Debe: '', Haber: 15000 },
-  { Fecha: '20/08', Cuenta: 'Proveedores', Concepto: 'Pago a proveedor', Debe: 5000, Haber: '' },
-  { Fecha: '20/08', Cuenta: 'Bancos', Concepto: 'Pago a proveedor', Debe: '', Haber: 5000 },
+function buildBalanzaRows(accounts) {
+  const rows = Object.entries(accounts).map(([cuenta, mov]) => {
+    const totalDebe = mov.debitos.reduce((s, d) => s + d.monto, 0);
+    const totalHaber = mov.creditos.reduce((s, c) => s + c.monto, 0);
+    const saldo = totalDebe - totalHaber;
+    return {
+      cuenta,
+      totalDebe,
+      totalHaber,
+      saldoDeudor: saldo > 0 ? saldo : 0,
+      saldoAcreedor: saldo < 0 ? -saldo : 0,
+    };
+  });
+  const totals = rows.reduce((acc, r) => ({
+    totalDebe: acc.totalDebe + r.totalDebe,
+    totalHaber: acc.totalHaber + r.totalHaber,
+    saldoDeudor: acc.saldoDeudor + r.saldoDeudor,
+    saldoAcreedor: acc.saldoAcreedor + r.saldoAcreedor,
+  }), { totalDebe: 0, totalHaber: 0, saldoDeudor: 0, saldoAcreedor: 0 });
+  return { rows, totals };
+}
+
+function buildBalanzaSheet(accounts) {
+  const { rows, totals } = buildBalanzaRows(accounts);
+  const aoa = [['Cuenta', 'Debe', 'Haber', 'Saldo deudor', 'Saldo acreedor']];
+  rows.forEach((r) => aoa.push([r.cuenta, r.totalDebe, r.totalHaber, r.saldoDeudor || '', r.saldoAcreedor || '']));
+  aoa.push(['Sumas', totals.totalDebe, totals.totalHaber, totals.saldoDeudor, totals.saldoAcreedor]);
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{ wch: 24 }, { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 16 }];
+  return ws;
+}
+
+const SAMPLE_SCENARIOS = [
+  {
+    nombre: 'Constitución de una empresa',
+    rows: [
+      { Fecha: '01/09', Cuenta: 'Bancos', Concepto: 'Aportación de socios', Debe: 80000, Haber: '' },
+      { Fecha: '01/09', Cuenta: 'Capital social', Concepto: 'Aportación de socios', Debe: '', Haber: 80000 },
+      { Fecha: '02/09', Cuenta: 'Mobiliario y equipo', Concepto: 'Compra de mobiliario de oficina', Debe: 15000, Haber: '' },
+      { Fecha: '02/09', Cuenta: 'Bancos', Concepto: 'Compra de mobiliario de oficina', Debe: '', Haber: 15000 },
+      { Fecha: '03/09', Cuenta: 'Equipo de cómputo', Concepto: 'Compra de equipo de cómputo', Debe: 25000, Haber: '' },
+      { Fecha: '03/09', Cuenta: 'Bancos', Concepto: 'Compra de equipo de cómputo', Debe: '', Haber: 25000 },
+    ],
+  },
+  {
+    nombre: 'Compra-venta con IVA',
+    rows: [
+      { Fecha: '05/09', Cuenta: 'Almacén', Concepto: 'Compra de mercancía a crédito', Debe: 20000, Haber: '' },
+      { Fecha: '05/09', Cuenta: 'IVA acreditable', Concepto: 'Compra de mercancía a crédito', Debe: 3200, Haber: '' },
+      { Fecha: '05/09', Cuenta: 'Proveedores', Concepto: 'Compra de mercancía a crédito', Debe: '', Haber: 23200 },
+      { Fecha: '10/09', Cuenta: 'Proveedores', Concepto: 'Pago parcial a proveedor', Debe: 10000, Haber: '' },
+      { Fecha: '10/09', Cuenta: 'Bancos', Concepto: 'Pago parcial a proveedor', Debe: '', Haber: 10000 },
+      { Fecha: '15/09', Cuenta: 'Clientes', Concepto: 'Venta de mercancía a crédito', Debe: 29000, Haber: '' },
+      { Fecha: '15/09', Cuenta: 'Ventas', Concepto: 'Venta de mercancía a crédito', Debe: '', Haber: 25000 },
+      { Fecha: '15/09', Cuenta: 'IVA trasladado', Concepto: 'Venta de mercancía a crédito', Debe: '', Haber: 4000 },
+    ],
+  },
+  {
+    nombre: 'Nómina básica',
+    rows: [
+      { Fecha: '30/09', Cuenta: 'Sueldos y salarios', Concepto: 'Nómina quincenal', Debe: 18000, Haber: '' },
+      { Fecha: '30/09', Cuenta: 'ISR por pagar', Concepto: 'Retención de ISR', Debe: '', Haber: 2200 },
+      { Fecha: '30/09', Cuenta: 'IMSS por pagar', Concepto: 'Retención de IMSS', Debe: '', Haber: 800 },
+      { Fecha: '30/09', Cuenta: 'Bancos', Concepto: 'Pago neto a empleados', Debe: '', Haber: 15000 },
+    ],
+  },
 ];
 
 function loadMovimientos() {
@@ -341,11 +479,33 @@ const state = {
   fileName: null,
   error: null,
   showDetalle: false,
+  view: 'cuentas-t',
+  sampleIndex: 0,
+  showGuia: false,
   formFecha: '',
   formConcepto: '',
   formLineas: [{ cuenta: '', debe: '', haber: '' }],
   formError: null,
 };
+
+// ---------- Notificaciones ----------
+
+let toastTimer = null;
+function showToast(message) {
+  let el = document.getElementById('ct-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'ct-toast';
+    el.className = 'ct-toast';
+    document.body.appendChild(el);
+  }
+  el.textContent = message;
+  el.classList.remove('show');
+  void el.offsetWidth; // fuerza reflow para reiniciar la animación si ya estaba visible
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
 
 // ---------- Acciones ----------
 
@@ -386,10 +546,11 @@ function processFile(file) {
   }
 }
 
-function loadSample() {
+function loadSample(index) {
+  const scenario = SAMPLE_SCENARIOS[index] || SAMPLE_SCENARIOS[0];
   state.error = null;
-  state.fileName = 'Ejemplo: pólizas de agosto';
-  const { movimientos: mov } = parseRows(SAMPLE_ROWS);
+  state.fileName = `Ejemplo: ${scenario.nombre}`;
+  const { movimientos: mov } = parseRows(scenario.rows);
   state.movimientos = mov;
   saveMovimientos(mov);
   render();
@@ -399,8 +560,10 @@ function exportExcel() {
   const accounts = groupByCuenta(state.movimientos);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, buildCuentasTSheet(accounts), 'Cuentas T');
+  XLSX.utils.book_append_sheet(wb, buildBalanzaSheet(accounts), 'Balanza');
   XLSX.utils.book_append_sheet(wb, buildMovimientosSheet(state.movimientos), 'Movimientos');
   XLSX.writeFile(wb, 'cuentas-t.xlsx');
+  showToast('✓ Excel descargado');
 }
 
 function resetAll() {
@@ -505,6 +668,75 @@ function accountTHtml(nombre, mov) {
   `;
 }
 
+function balanzaHtml(accounts) {
+  const { rows, totals } = buildBalanzaRows(accounts);
+  const cuadra = Math.round((totals.saldoDeudor - totals.saldoAcreedor) * 100) === 0;
+
+  return `
+    <div class="ct-balanza">
+      <table>
+        <thead>
+          <tr><th>Cuenta</th><th>Debe</th><th>Haber</th><th>Saldo deudor</th><th>Saldo acreedor</th></tr>
+        </thead>
+        <tbody>
+          ${rows.map((r) => `
+            <tr>
+              <td>${esc(r.cuenta)}</td>
+              <td>${money(r.totalDebe)}</td>
+              <td>${money(r.totalHaber)}</td>
+              <td>${r.saldoDeudor ? money(r.saldoDeudor) : ''}</td>
+              <td>${r.saldoAcreedor ? money(r.saldoAcreedor) : ''}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+        <tfoot>
+          <tr class="ct-balanza-totales">
+            <td>Sumas</td>
+            <td>${money(totals.totalDebe)}</td>
+            <td>${money(totals.totalHaber)}</td>
+            <td>${money(totals.saldoDeudor)}</td>
+            <td>${money(totals.saldoAcreedor)}</td>
+          </tr>
+        </tfoot>
+      </table>
+      <div class="ct-balanza-check ${cuadra ? 'ok' : 'off'}">
+        ${cuadra ? '✓ La balanza cuadra' : 'La balanza no cuadra — revisa tus movimientos'}
+      </div>
+    </div>
+  `;
+}
+
+function guiaHtml() {
+  const filas = [
+    { tipo: 'Activo', naturaleza: 'Deudora', aumenta: 'Debe', disminuye: 'Haber', ejemplos: 'Caja, Bancos, Clientes, Almacén, Mobiliario y equipo' },
+    { tipo: 'Pasivo', naturaleza: 'Acreedora', aumenta: 'Haber', disminuye: 'Debe', ejemplos: 'Proveedores, Acreedores diversos, IVA por pagar, ISR por pagar' },
+    { tipo: 'Capital', naturaleza: 'Acreedora', aumenta: 'Haber', disminuye: 'Debe', ejemplos: 'Capital social, Utilidades acumuladas' },
+    { tipo: 'Ingresos', naturaleza: 'Acreedora', aumenta: 'Haber', disminuye: 'Debe', ejemplos: 'Ventas, Ingresos por servicios' },
+    { tipo: 'Gastos y costos', naturaleza: 'Deudora', aumenta: 'Debe', disminuye: 'Haber', ejemplos: 'Sueldos y salarios, Renta, Papelería, Costo de ventas' },
+  ];
+  return `
+    <div class="ct-guia">
+      <table>
+        <thead>
+          <tr><th>Tipo de cuenta</th><th>Naturaleza</th><th>Aumenta</th><th>Disminuye</th><th>Ejemplos</th></tr>
+        </thead>
+        <tbody>
+          ${filas.map((f) => `
+            <tr>
+              <td>${f.tipo}</td>
+              <td>${f.naturaleza}</td>
+              <td class="ct-guia-strong">${f.aumenta}</td>
+              <td>${f.disminuye}</td>
+              <td class="ct-guia-ejemplos">${f.ejemplos}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <p class="ct-guia-note">Regla general: Activo y Gastos aumentan con Debe. Pasivo, Capital e Ingresos aumentan con Haber.</p>
+    </div>
+  `;
+}
+
 function render() {
   const hasData = state.movimientos.length > 0;
   const accounts = groupByCuenta(state.movimientos);
@@ -526,6 +758,9 @@ function render() {
         </div>
       </div>
       <div class="ct-actions">
+        <select class="btn" data-field="sample-choice">
+          ${SAMPLE_SCENARIOS.map((s, i) => `<option value="${i}" ${i === state.sampleIndex ? 'selected' : ''}>${esc(s.nombre)}</option>`).join('')}
+        </select>
         <button class="btn" data-action="load-sample">Cargar ejemplo</button>
         <button class="btn" data-action="trigger-upload">Subir archivo</button>
         ${hasData ? '<button class="btn add" data-action="export-excel">Descargar Excel</button>' : ''}
@@ -533,6 +768,11 @@ function render() {
         <input id="file-input" type="file" accept=".xlsx,.xls,.csv" style="display:none" />
       </div>
     </div>
+
+    <div class="ct-guia-toggle">
+      <button class="ct-help-link" data-action="toggle-guia">${state.showGuia ? '✕ Cerrar guía' : 'Guía rápida: ¿Debe o Haber?'}</button>
+    </div>
+    ${state.showGuia ? guiaHtml() : ''}
 
     <div class="ct-form">
       <span class="eyebrow">Nuevo movimiento</span>
@@ -625,9 +865,16 @@ function render() {
     ${state.error ? `<div class="ct-error"><strong>Aviso:</strong> ${esc(state.error)}</div>` : ''}
 
     ${hasData && Object.keys(accounts).length > 0 ? `
-      <div class="ct-grid">
-        ${Object.entries(accounts).map(([nombre, mov]) => accountTHtml(nombre, mov)).join('')}
+      <div class="ct-tabs">
+        <button class="ct-tab ${state.view === 'cuentas-t' ? 'active' : ''}" data-action="set-view" data-view="cuentas-t">Cuentas T</button>
+        <button class="ct-tab ${state.view === 'balanza' ? 'active' : ''}" data-action="set-view" data-view="balanza">Balanza de comprobación</button>
       </div>
+
+      ${state.view === 'cuentas-t' ? `
+        <div class="ct-grid">
+          ${Object.entries(accounts).map(([nombre, mov]) => accountTHtml(nombre, mov)).join('')}
+        </div>
+      ` : balanzaHtml(accounts)}
     ` : ''}
   `;
 
@@ -647,7 +894,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const action = actionEl.dataset.action;
     const index = actionEl.dataset.index !== undefined ? parseInt(actionEl.dataset.index, 10) : null;
 
-    if (action === 'load-sample') loadSample();
+    if (action === 'load-sample') loadSample(state.sampleIndex);
     else if (action === 'trigger-upload') document.getElementById('file-input').click();
     else if (action === 'export-excel') exportExcel();
     else if (action === 'reset-all') resetAll();
@@ -656,6 +903,8 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (action === 'guardar-poliza') guardarPoliza();
     else if (action === 'toggle-detalle') toggleDetalle();
     else if (action === 'remove-movimiento') removeMovimiento(index);
+    else if (action === 'set-view') { state.view = actionEl.dataset.view; render(); }
+    else if (action === 'toggle-guia') { state.showGuia = !state.showGuia; render(); }
   });
 
   app.addEventListener('input', (e) => {
@@ -674,25 +923,39 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target.id === 'file-input' && e.target.files[0]) {
       processFile(e.target.files[0]);
       e.target.value = '';
+    } else if (e.target.dataset.field === 'sample-choice') {
+      state.sampleIndex = parseInt(e.target.value, 10) || 0;
     }
   });
 
-  app.addEventListener('dragover', (e) => {
-    const dz = e.target.closest('#dropzone');
-    if (dz) { e.preventDefault(); dz.classList.add('drag'); }
+  const dragOverlay = document.getElementById('ct-drag-overlay');
+  let dragCounter = 0;
+  const isFileDrag = (e) => e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files');
+
+  window.addEventListener('dragenter', (e) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    dragCounter++;
+    dragOverlay.classList.add('show');
   });
-  app.addEventListener('dragleave', (e) => {
-    const dz = e.target.closest('#dropzone');
-    if (dz) dz.classList.remove('drag');
+  window.addEventListener('dragover', (e) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
   });
-  app.addEventListener('drop', (e) => {
-    const dz = e.target.closest('#dropzone');
-    if (dz) {
-      e.preventDefault();
-      dz.classList.remove('drag');
-      const file = e.dataTransfer.files[0];
-      if (file) processFile(file);
+  window.addEventListener('dragleave', () => {
+    dragCounter--;
+    if (dragCounter <= 0) {
+      dragCounter = 0;
+      dragOverlay.classList.remove('show');
     }
+  });
+  window.addEventListener('drop', (e) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    dragCounter = 0;
+    dragOverlay.classList.remove('show');
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) processFile(file);
   });
 
   if ('serviceWorker' in navigator) {

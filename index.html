@@ -84,6 +84,20 @@
   .btn.add:hover { background: #33465e; }
   select.btn { cursor: pointer; -webkit-appearance: none; appearance: none; padding-right: 22px; }
 
+  .ct-sample-combo {
+    display: inline-flex; align-items: stretch;
+    border: 1.5px solid var(--ink); border-radius: 3px; overflow: hidden;
+  }
+  .ct-sample-combo .ct-sample-select-wrap { position: relative; display: inline-flex; }
+  .ct-sample-combo select.btn {
+    border: none; border-right: 1.5px solid var(--ink); border-radius: 0; padding-right: 26px;
+  }
+  .ct-sample-select-wrap::after {
+    content: '▾'; position: absolute; right: 9px; top: 50%; transform: translateY(-50%);
+    font-size: 9px; color: var(--gold); pointer-events: none;
+  }
+  .ct-sample-combo button.btn { border: none; border-radius: 0; }
+
   .ct-guia-toggle { max-width: 1100px; margin: 0 auto 16px; }
   .ct-help-link {
     background: none; border: none; cursor: pointer; color: var(--gold);
@@ -758,10 +772,14 @@ function render() {
         </div>
       </div>
       <div class="ct-actions">
-        <select class="btn" data-field="sample-choice">
-          ${SAMPLE_SCENARIOS.map((s, i) => `<option value="${i}" ${i === state.sampleIndex ? 'selected' : ''}>${esc(s.nombre)}</option>`).join('')}
-        </select>
-        <button class="btn" data-action="load-sample">Cargar ejemplo</button>
+        <div class="ct-sample-combo">
+          <span class="ct-sample-select-wrap">
+            <select class="btn" data-field="sample-choice">
+              ${SAMPLE_SCENARIOS.map((s, i) => `<option value="${i}" ${i === state.sampleIndex ? 'selected' : ''}>${esc(s.nombre)}</option>`).join('')}
+            </select>
+          </span>
+          <button class="btn add" data-action="load-sample">Cargar ejemplo</button>
+        </div>
         <button class="btn" data-action="trigger-upload">Subir archivo</button>
         ${hasData ? '<button class="btn add" data-action="export-excel">Descargar Excel</button>' : ''}
         ${hasData ? '<button class="btn" data-action="reset-all">Limpiar todo</button>' : ''}

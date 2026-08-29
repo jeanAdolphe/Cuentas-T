@@ -245,6 +245,42 @@
   }
   .ct-balanza-check.ok { color: var(--forest); }
   .ct-balanza-check.off { color: var(--brick); }
+
+  .ct-clasificar {
+    max-width: 700px; margin: 0 auto 24px; background: var(--card);
+    border: 1.5px solid var(--ink); border-radius: 2px; padding: 16px 18px;
+  }
+  .ct-clasificar-intro { font-family: 'Courier New', monospace; font-size: 13px; margin: 0 0 14px; color: #445; }
+  .ct-clasificar-rows { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+  .ct-clasificar-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding-bottom: 8px; border-bottom: 1px dotted var(--rule-strong);
+  }
+  .ct-clasificar-nombre { font-family: Georgia, serif; font-size: 14px; }
+  .ct-clasificar-row select {
+    font-family: 'Courier New', monospace; font-size: 13px; padding: 5px 8px;
+    border: 1.5px solid var(--ink); border-radius: 3px; background: var(--paper); color: var(--ink);
+  }
+
+  .ct-estado {
+    max-width: 700px; margin: 0 auto 24px; background: var(--card);
+    border: 1.5px solid var(--ink); border-radius: 2px; padding: 18px 22px;
+    font-family: 'Courier New', monospace; font-size: 13.5px;
+  }
+  .ct-estado-section { margin-bottom: 18px; }
+  .ct-estado-title {
+    font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold);
+    font-weight: 700; margin-bottom: 8px; border-bottom: 1.5px solid var(--ink); padding-bottom: 4px;
+  }
+  .ct-estado-row { display: flex; justify-content: space-between; padding: 4px 0; }
+  .ct-estado-row.muted { color: #889; font-style: italic; }
+  .ct-estado-subtotal { border-top: 1px solid var(--ink); margin-top: 4px; padding-top: 6px; font-weight: 700; }
+  .ct-estado-final {
+    border-top: 2px solid var(--ink); border-bottom: 4px double var(--ink);
+    padding: 10px 0; margin-top: 6px; font-weight: 700; font-size: 14.5px;
+  }
+  .ct-estado-final.ok { color: var(--forest); }
+  .ct-estado-final.off { color: var(--brick); }
   .tcard { background: var(--card); border: 1.5px solid var(--ink); border-radius: 2px; box-shadow: 3px 3px 0 rgba(31,45,61,0.08); }
   .tcard-header { text-align: center; font-weight: 700; font-size: 15px; padding: 10px 8px 8px; border-bottom: 2px solid var(--ink); }
   .tcard-subhead {
@@ -301,6 +337,70 @@
 // ---------- Datos y utilidades ----------
 
 const STORAGE_KEY = 'cuentasT_movimientos_v1';
+const TIPOS_STORAGE_KEY = 'cuentasT_tipoCuentas_v1';
+
+// Catálogo de cuentas comunes (nombre normalizado -> tipo). Se usa para
+// clasificar automáticamente cuentas conocidas; lo que no aparezca aquí
+// se le pregunta al usuario una sola vez.
+const CATALOGO_CUENTAS = {
+  'caja': 'Activo',
+  'bancos': 'Activo',
+  'clientes': 'Activo',
+  'documentos por cobrar': 'Activo',
+  'deudores diversos': 'Activo',
+  'almacén': 'Activo',
+  'mercancías': 'Activo',
+  'iva acreditable': 'Activo',
+  'mobiliario y equipo': 'Activo',
+  'equipo de cómputo': 'Activo',
+  'equipo de transporte': 'Activo',
+  'terrenos': 'Activo',
+  'edificios': 'Activo',
+  'rentas pagadas por anticipado': 'Activo',
+
+  'proveedores': 'Pasivo',
+  'acreedores diversos': 'Pasivo',
+  'documentos por pagar': 'Pasivo',
+  'iva por pagar': 'Pasivo',
+  'iva trasladado': 'Pasivo',
+  'isr por pagar': 'Pasivo',
+  'imss por pagar': 'Pasivo',
+  'impuestos por pagar': 'Pasivo',
+  'sueldos por pagar': 'Pasivo',
+  'ptu por pagar': 'Pasivo',
+  'acreedores hipotecarios': 'Pasivo',
+
+  'capital social': 'Capital',
+  'utilidades acumuladas': 'Capital',
+  'pérdidas acumuladas': 'Capital',
+  'reserva legal': 'Capital',
+
+  'ventas': 'Ingresos',
+  'ingresos por servicios': 'Ingresos',
+  'productos financieros': 'Ingresos',
+  'otros ingresos': 'Ingresos',
+
+  'sueldos y salarios': 'Gastos',
+  'renta': 'Gastos',
+  'papelería y útiles': 'Gastos',
+  'costo de ventas': 'Gastos',
+  'gastos de venta': 'Gastos',
+  'gastos de administración': 'Gastos',
+  'gastos financieros': 'Gastos',
+  'depreciación': 'Gastos',
+  'publicidad': 'Gastos',
+  'luz': 'Gastos',
+  'teléfono': 'Gastos',
+  'mantenimiento': 'Gastos',
+  'combustibles y lubricantes': 'Gastos',
+  'honorarios': 'Gastos',
+};
+
+function getTipoCuenta(cuenta) {
+  if (state.tipoCuentas[cuenta]) return state.tipoCuentas[cuenta];
+  const norm = normalizeHeader(cuenta);
+  return CATALOGO_CUENTAS[norm] || null;
+}
 
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({
@@ -486,10 +586,32 @@ function saveMovimientos(movs) {
   }
 }
 
+function loadTipoCuentas() {
+  try {
+    const raw = localStorage.getItem(TIPOS_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveTipoCuentas(map) {
+  try {
+    localStorage.setItem(TIPOS_STORAGE_KEY, JSON.stringify(map));
+  } catch (e) {
+    console.error('No se pudo guardar el catálogo de cuentas:', e);
+  }
+}
+
 // ---------- Estado ----------
 
 const state = {
   movimientos: loadMovimientos(),
+  tipoCuentas: loadTipoCuentas(),
+  pendingClasificacion: {},
+  clasificarError: null,
   fileName: null,
   error: null,
   showDetalle: false,
@@ -626,6 +748,26 @@ function guardarPoliza() {
   render();
 }
 
+function guardarClasificacion() {
+  const cuentasUsadas = [...new Set(state.movimientos.map((m) => m.cuenta))];
+  const sinClasificar = cuentasUsadas.filter((c) => !getTipoCuenta(c));
+  const pending = state.pendingClasificacion || {};
+
+  for (const c of sinClasificar) {
+    if (!pending[c]) {
+      state.clasificarError = 'Elige un tipo para cada cuenta antes de continuar.';
+      render();
+      return;
+    }
+  }
+
+  sinClasificar.forEach((c) => { state.tipoCuentas[c] = pending[c]; });
+  state.pendingClasificacion = {};
+  state.clasificarError = null;
+  saveTipoCuentas(state.tipoCuentas);
+  render();
+}
+
 function toggleDetalle() {
   state.showDetalle = !state.showDetalle;
   render();
@@ -747,6 +889,66 @@ function guiaHtml() {
         </tbody>
       </table>
       <p class="ct-guia-note">Regla general: Activo y Gastos aumentan con Debe. Pasivo, Capital e Ingresos aumentan con Haber.</p>
+    </div>
+  `;
+}
+
+function clasificarHtml(sinClasificar) {
+  const tipos = ['Activo', 'Pasivo', 'Capital', 'Ingresos', 'Gastos'];
+  return `
+    <div class="ct-clasificar">
+      <p class="ct-clasificar-intro">Antes de mostrar el Estado de Resultados, clasifica estas cuentas nuevas:</p>
+      <div class="ct-clasificar-rows">
+        ${sinClasificar.map((c) => `
+          <div class="ct-clasificar-row">
+            <span class="ct-clasificar-nombre">${esc(c)}</span>
+            <select data-field="clasificar" data-cuenta="${esc(c)}">
+              <option value="">— elige —</option>
+              ${tipos.map((t) => `<option value="${t}" ${state.pendingClasificacion[c] === t ? 'selected' : ''}>${t}</option>`).join('')}
+            </select>
+          </div>
+        `).join('')}
+      </div>
+      <button class="btn add" data-action="guardar-clasificacion">Guardar clasificación</button>
+      ${state.clasificarError ? `<div class="form-error">${esc(state.clasificarError)}</div>` : ''}
+    </div>
+  `;
+}
+
+function estadoResultadosHtml(accounts) {
+  const ingresos = [];
+  const gastos = [];
+
+  Object.entries(accounts).forEach(([cuenta, mov]) => {
+    const tipo = getTipoCuenta(cuenta);
+    const totalDebe = mov.debitos.reduce((s, d) => s + d.monto, 0);
+    const totalHaber = mov.creditos.reduce((s, c) => s + c.monto, 0);
+    if (tipo === 'Ingresos') ingresos.push({ cuenta, monto: totalHaber - totalDebe });
+    else if (tipo === 'Gastos') gastos.push({ cuenta, monto: totalDebe - totalHaber });
+  });
+
+  const totalIngresos = ingresos.reduce((s, i) => s + i.monto, 0);
+  const totalGastos = gastos.reduce((s, g) => s + g.monto, 0);
+  const utilidad = totalIngresos - totalGastos;
+
+  const filaVacia = (texto) => `<div class="ct-estado-row muted"><span>${texto}</span><span></span></div>`;
+
+  return `
+    <div class="ct-estado">
+      <div class="ct-estado-section">
+        <div class="ct-estado-title">Ingresos</div>
+        ${ingresos.length ? ingresos.map((i) => `<div class="ct-estado-row"><span>${esc(i.cuenta)}</span><span>${money(i.monto)}</span></div>`).join('') : filaVacia('Sin cuentas de ingresos')}
+        <div class="ct-estado-row ct-estado-subtotal"><span>Total Ingresos</span><span>${money(totalIngresos)}</span></div>
+      </div>
+      <div class="ct-estado-section">
+        <div class="ct-estado-title">Gastos</div>
+        ${gastos.length ? gastos.map((g) => `<div class="ct-estado-row"><span>${esc(g.cuenta)}</span><span>${money(g.monto)}</span></div>`).join('') : filaVacia('Sin cuentas de gastos')}
+        <div class="ct-estado-row ct-estado-subtotal"><span>Total Gastos</span><span>${money(totalGastos)}</span></div>
+      </div>
+      <div class="ct-estado-row ct-estado-final ${utilidad >= 0 ? 'ok' : 'off'}">
+        <span>${utilidad >= 0 ? 'Utilidad del ejercicio' : 'Pérdida del ejercicio'}</span>
+        <span>${money(Math.abs(utilidad))}</span>
+      </div>
     </div>
   `;
 }
@@ -886,13 +1088,18 @@ function render() {
       <div class="ct-tabs">
         <button class="ct-tab ${state.view === 'cuentas-t' ? 'active' : ''}" data-action="set-view" data-view="cuentas-t">Cuentas T</button>
         <button class="ct-tab ${state.view === 'balanza' ? 'active' : ''}" data-action="set-view" data-view="balanza">Balanza de comprobación</button>
+        <button class="ct-tab ${state.view === 'estado-resultados' ? 'active' : ''}" data-action="set-view" data-view="estado-resultados">Estado de Resultados</button>
       </div>
 
       ${state.view === 'cuentas-t' ? `
         <div class="ct-grid">
           ${Object.entries(accounts).map(([nombre, mov]) => accountTHtml(nombre, mov)).join('')}
         </div>
-      ` : balanzaHtml(accounts)}
+      ` : state.view === 'balanza' ? balanzaHtml(accounts) : (() => {
+          const cuentasUsadas = [...new Set(state.movimientos.map((m) => m.cuenta))];
+          const sinClasificar = cuentasUsadas.filter((c) => !getTipoCuenta(c));
+          return sinClasificar.length > 0 ? clasificarHtml(sinClasificar) : estadoResultadosHtml(accounts);
+        })()}
     ` : ''}
   `;
 
@@ -923,6 +1130,7 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (action === 'remove-movimiento') removeMovimiento(index);
     else if (action === 'set-view') { state.view = actionEl.dataset.view; render(); }
     else if (action === 'toggle-guia') { state.showGuia = !state.showGuia; render(); }
+    else if (action === 'guardar-clasificacion') guardarClasificacion();
   });
 
   app.addEventListener('input', (e) => {
@@ -943,6 +1151,8 @@ document.addEventListener('DOMContentLoaded', () => {
       e.target.value = '';
     } else if (e.target.dataset.field === 'sample-choice') {
       state.sampleIndex = parseInt(e.target.value, 10) || 0;
+    } else if (e.target.dataset.field === 'clasificar') {
+      state.pendingClasificacion[e.target.dataset.cuenta] = e.target.value;
     }
   });
 

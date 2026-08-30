@@ -281,6 +281,15 @@
   }
   .ct-estado-final.ok { color: var(--forest); }
   .ct-estado-final.off { color: var(--brick); }
+
+  .ct-balance-general {
+    max-width: 1100px; margin: 0 auto 4px; display: grid;
+    grid-template-columns: 1fr 1fr; gap: 20px;
+  }
+  .ct-balance-general .ct-estado { max-width: none; margin: 0; }
+  @media (max-width: 700px) {
+    .ct-balance-general { grid-template-columns: 1fr; }
+  }
   .tcard { background: var(--card); border: 1.5px solid var(--ink); border-radius: 2px; box-shadow: 3px 3px 0 rgba(31,45,61,0.08); }
   .tcard-header { text-align: center; font-weight: 700; font-size: 15px; padding: 10px 8px 8px; border-bottom: 2px solid var(--ink); }
   .tcard-subhead {
@@ -531,6 +540,77 @@ function buildBalanzaSheet(accounts) {
   return ws;
 }
 
+function buildEstadoResultadosSheet(accounts) {
+  const ingresos = [];
+  const gastos = [];
+  Object.entries(accounts).forEach(([cuenta, mov]) => {
+    const tipo = getTipoCuenta(cuenta);
+    const totalDebe = mov.debitos.reduce((s, d) => s + d.monto, 0);
+    const totalHaber = mov.creditos.reduce((s, c) => s + c.monto, 0);
+    if (tipo === 'Ingresos') ingresos.push([cuenta, totalHaber - totalDebe]);
+    else if (tipo === 'Gastos') gastos.push([cuenta, totalDebe - totalHaber]);
+  });
+  const totalIngresos = ingresos.reduce((s, [, m]) => s + m, 0);
+  const totalGastos = gastos.reduce((s, [, m]) => s + m, 0);
+  const utilidad = totalIngresos - totalGastos;
+
+  const aoa = [['Estado de Resultados'], [], ['Ingresos']];
+  ingresos.forEach(([c, m]) => aoa.push([c, m]));
+  aoa.push(['Total Ingresos', totalIngresos]);
+  aoa.push([]);
+  aoa.push(['Gastos']);
+  gastos.forEach(([c, m]) => aoa.push([c, m]));
+  aoa.push(['Total Gastos', totalGastos]);
+  aoa.push([]);
+  aoa.push([utilidad >= 0 ? 'Utilidad del ejercicio' : 'Pérdida del ejercicio', utilidad]);
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{ wch: 30 }, { wch: 16 }];
+  return ws;
+}
+
+function buildBalanceGeneralSheet(accounts) {
+  const activos = [];
+  const pasivos = [];
+  const capitales = [];
+  let totalIngresos = 0;
+  let totalGastos = 0;
+  Object.entries(accounts).forEach(([cuenta, mov]) => {
+    const tipo = getTipoCuenta(cuenta);
+    const totalDebe = mov.debitos.reduce((s, d) => s + d.monto, 0);
+    const totalHaber = mov.creditos.reduce((s, c) => s + c.monto, 0);
+    if (tipo === 'Activo') activos.push([cuenta, totalDebe - totalHaber]);
+    else if (tipo === 'Pasivo') pasivos.push([cuenta, totalHaber - totalDebe]);
+    else if (tipo === 'Capital') capitales.push([cuenta, totalHaber - totalDebe]);
+    else if (tipo === 'Ingresos') totalIngresos += totalHaber - totalDebe;
+    else if (tipo === 'Gastos') totalGastos += totalDebe - totalHaber;
+  });
+  const totalActivo = activos.reduce((s, [, m]) => s + m, 0);
+  const totalPasivo = pasivos.reduce((s, [, m]) => s + m, 0);
+  const totalCapitalPropio = capitales.reduce((s, [, m]) => s + m, 0);
+  const utilidad = totalIngresos - totalGastos;
+  const totalCapital = totalCapitalPropio + utilidad;
+
+  const aoa = [['Balance General'], [], ['Activo']];
+  activos.forEach(([c, m]) => aoa.push([c, m]));
+  aoa.push(['Total Activo', totalActivo]);
+  aoa.push([]);
+  aoa.push(['Pasivo']);
+  pasivos.forEach(([c, m]) => aoa.push([c, m]));
+  aoa.push(['Total Pasivo', totalPasivo]);
+  aoa.push([]);
+  aoa.push(['Capital']);
+  capitales.forEach(([c, m]) => aoa.push([c, m]));
+  aoa.push([utilidad >= 0 ? 'Utilidad del ejercicio' : 'Pérdida del ejercicio', utilidad]);
+  aoa.push(['Total Capital', totalCapital]);
+  aoa.push([]);
+  aoa.push(['Total Pasivo + Capital', totalPasivo + totalCapital]);
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{ wch: 30 }, { wch: 16 }];
+  return ws;
+}
+
 const SAMPLE_SCENARIOS = [
   {
     nombre: 'Constitución de una empresa',
@@ -694,9 +774,15 @@ function loadSample(index) {
 
 function exportExcel() {
   const accounts = groupByCuenta(state.movimientos);
+  const cuentasUsadas = [...new Set(state.movimientos.map((m) => m.cuenta))];
+  const sinClasificar = cuentasUsadas.filter((c) => !getTipoCuenta(c));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, buildCuentasTSheet(accounts), 'Cuentas T');
   XLSX.utils.book_append_sheet(wb, buildBalanzaSheet(accounts), 'Balanza');
+  if (sinClasificar.length === 0) {
+    XLSX.utils.book_append_sheet(wb, buildEstadoResultadosSheet(accounts), 'Estado de Resultados');
+    XLSX.utils.book_append_sheet(wb, buildBalanceGeneralSheet(accounts), 'Balance General');
+  }
   XLSX.utils.book_append_sheet(wb, buildMovimientosSheet(state.movimientos), 'Movimientos');
   XLSX.writeFile(wb, 'cuentas-t.xlsx');
   showToast('✓ Excel descargado');
@@ -953,6 +1039,61 @@ function estadoResultadosHtml(accounts) {
   `;
 }
 
+function balanceGeneralHtml(accounts) {
+  const activos = [];
+  const pasivos = [];
+  const capitales = [];
+  let totalIngresos = 0;
+  let totalGastos = 0;
+
+  Object.entries(accounts).forEach(([cuenta, mov]) => {
+    const tipo = getTipoCuenta(cuenta);
+    const totalDebe = mov.debitos.reduce((s, d) => s + d.monto, 0);
+    const totalHaber = mov.creditos.reduce((s, c) => s + c.monto, 0);
+    if (tipo === 'Activo') activos.push({ cuenta, monto: totalDebe - totalHaber });
+    else if (tipo === 'Pasivo') pasivos.push({ cuenta, monto: totalHaber - totalDebe });
+    else if (tipo === 'Capital') capitales.push({ cuenta, monto: totalHaber - totalDebe });
+    else if (tipo === 'Ingresos') totalIngresos += totalHaber - totalDebe;
+    else if (tipo === 'Gastos') totalGastos += totalDebe - totalHaber;
+  });
+
+  const totalActivo = activos.reduce((s, a) => s + a.monto, 0);
+  const totalPasivo = pasivos.reduce((s, p) => s + p.monto, 0);
+  const totalCapitalPropio = capitales.reduce((s, c) => s + c.monto, 0);
+  const utilidad = totalIngresos - totalGastos;
+  const totalCapital = totalCapitalPropio + utilidad;
+  const totalPasivoCapital = totalPasivo + totalCapital;
+  const cuadra = Math.round((totalActivo - totalPasivoCapital) * 100) === 0;
+  const utilidadDisplay = utilidad >= 0 ? money(utilidad) : `(${money(Math.abs(utilidad))})`;
+
+  const filaVacia = (texto) => `<div class="ct-estado-row muted"><span>${texto}</span><span></span></div>`;
+
+  return `
+    <div class="ct-balance-general">
+      <div class="ct-estado ct-bg-col">
+        <div class="ct-estado-title">Activo</div>
+        ${activos.length ? activos.map((a) => `<div class="ct-estado-row"><span>${esc(a.cuenta)}</span><span>${money(a.monto)}</span></div>`).join('') : filaVacia('Sin cuentas de activo')}
+        <div class="ct-estado-row ct-estado-final"><span>Total Activo</span><span>${money(totalActivo)}</span></div>
+      </div>
+      <div class="ct-estado ct-bg-col">
+        <div class="ct-estado-title">Pasivo</div>
+        ${pasivos.length ? pasivos.map((p) => `<div class="ct-estado-row"><span>${esc(p.cuenta)}</span><span>${money(p.monto)}</span></div>`).join('') : filaVacia('Sin cuentas de pasivo')}
+        <div class="ct-estado-row ct-estado-subtotal"><span>Total Pasivo</span><span>${money(totalPasivo)}</span></div>
+
+        <div class="ct-estado-title" style="margin-top:16px;">Capital</div>
+        ${capitales.map((c) => `<div class="ct-estado-row"><span>${esc(c.cuenta)}</span><span>${money(c.monto)}</span></div>`).join('')}
+        <div class="ct-estado-row"><span>${utilidad >= 0 ? 'Utilidad del ejercicio' : 'Pérdida del ejercicio'}</span><span>${utilidadDisplay}</span></div>
+        <div class="ct-estado-row ct-estado-subtotal"><span>Total Capital</span><span>${money(totalCapital)}</span></div>
+
+        <div class="ct-estado-row ct-estado-final"><span>Total Pasivo + Capital</span><span>${money(totalPasivoCapital)}</span></div>
+      </div>
+    </div>
+    <div class="ct-balanza-check ${cuadra ? 'ok' : 'off'}" style="max-width:1100px;margin:0 auto 24px;">
+      ${cuadra ? '✓ El balance cuadra — Activo = Pasivo + Capital' : 'El balance no cuadra — revisa tus movimientos'}
+    </div>
+  `;
+}
+
 function render() {
   const hasData = state.movimientos.length > 0;
   const accounts = groupByCuenta(state.movimientos);
@@ -1089,6 +1230,7 @@ function render() {
         <button class="ct-tab ${state.view === 'cuentas-t' ? 'active' : ''}" data-action="set-view" data-view="cuentas-t">Cuentas T</button>
         <button class="ct-tab ${state.view === 'balanza' ? 'active' : ''}" data-action="set-view" data-view="balanza">Balanza de comprobación</button>
         <button class="ct-tab ${state.view === 'estado-resultados' ? 'active' : ''}" data-action="set-view" data-view="estado-resultados">Estado de Resultados</button>
+        <button class="ct-tab ${state.view === 'balance-general' ? 'active' : ''}" data-action="set-view" data-view="balance-general">Balance General</button>
       </div>
 
       ${state.view === 'cuentas-t' ? `
@@ -1098,7 +1240,8 @@ function render() {
       ` : state.view === 'balanza' ? balanzaHtml(accounts) : (() => {
           const cuentasUsadas = [...new Set(state.movimientos.map((m) => m.cuenta))];
           const sinClasificar = cuentasUsadas.filter((c) => !getTipoCuenta(c));
-          return sinClasificar.length > 0 ? clasificarHtml(sinClasificar) : estadoResultadosHtml(accounts);
+          if (sinClasificar.length > 0) return clasificarHtml(sinClasificar);
+          return state.view === 'estado-resultados' ? estadoResultadosHtml(accounts) : balanceGeneralHtml(accounts);
         })()}
     ` : ''}
   `;

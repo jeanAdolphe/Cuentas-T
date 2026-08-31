@@ -290,6 +290,17 @@
   @media (max-width: 700px) {
     .ct-balance-general { grid-template-columns: 1fr; }
   }
+
+  .ct-aplicacion {
+    max-width: 1100px; margin: 0 auto 24px; background: var(--card);
+    border: 1.5px solid var(--ink); border-radius: 2px; padding: 16px 20px;
+    font-family: 'Courier New', monospace; font-size: 13px;
+  }
+  .ct-aplicacion-title {
+    font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold);
+    font-weight: 700; margin-bottom: 8px;
+  }
+  .ct-aplicacion p { font-family: Georgia, serif; font-size: 12.5px; font-style: italic; color: #556; margin: 0 0 12px; }
   .tcard { background: var(--card); border: 1.5px solid var(--ink); border-radius: 2px; box-shadow: 3px 3px 0 rgba(31,45,61,0.08); }
   .tcard-header { text-align: center; font-weight: 700; font-size: 15px; padding: 10px 8px 8px; border-bottom: 2px solid var(--ink); }
   .tcard-subhead {
@@ -1090,6 +1101,50 @@ function balanceGeneralHtml(accounts) {
     </div>
     <div class="ct-balanza-check ${cuadra ? 'ok' : 'off'}" style="max-width:1100px;margin:0 auto 24px;">
       ${cuadra ? '✓ El balance cuadra — Activo = Pasivo + Capital' : 'El balance no cuadra — revisa tus movimientos'}
+    </div>
+    ${aplicacionResultadosHtml(accounts, utilidad)}
+  `;
+}
+
+function aplicacionResultadosHtml(accounts, utilidad) {
+  if (utilidad <= 0) return '';
+
+  const balanceOf = (cuenta) => {
+    const mov = accounts[cuenta];
+    return mov.creditos.reduce((s, c) => s + c.monto, 0) - mov.debitos.reduce((s, d) => s + d.monto, 0);
+  };
+  const capitalAccounts = Object.keys(accounts).filter((c) => getTipoCuenta(c) === 'Capital');
+  const capitalSocialCuenta = capitalAccounts.find((c) => normalizeHeader(c) === 'capital social');
+
+  if (!capitalSocialCuenta) {
+    return `
+      <div class="ct-aplicacion">
+        <div class="ct-aplicacion-title">Aplicación de resultados</div>
+        <p>Para calcular la reserva legal sugerida necesito una cuenta llamada exactamente "Capital social". Agrégala si quieres ver este cálculo.</p>
+      </div>
+    `;
+  }
+
+  const capitalSocial = balanceOf(capitalSocialCuenta);
+  const reservaCuenta = capitalAccounts.find((c) => normalizeHeader(c) === 'reserva legal');
+  const reservaActual = reservaCuenta ? balanceOf(reservaCuenta) : 0;
+
+  const tope = capitalSocial * 0.2;
+  const espacio = Math.max(0, tope - reservaActual);
+  const cincoPorciento = utilidad * 0.05;
+  const sugerida = Math.min(cincoPorciento, espacio);
+  const resto = utilidad - sugerida;
+
+  return `
+    <div class="ct-aplicacion">
+      <div class="ct-aplicacion-title">Aplicación de resultados (informativo)</div>
+      <p>Según el Art. 20 de la LGSM, debe apartarse el 5% de la utilidad a Reserva legal cada año, hasta acumular el 20% del Capital social.</p>
+      <div class="ct-estado-row"><span>Capital social</span><span>${money(capitalSocial)}</span></div>
+      <div class="ct-estado-row"><span>Tope de reserva legal (20%)</span><span>${money(tope)}</span></div>
+      <div class="ct-estado-row"><span>Reserva legal acumulada</span><span>${money(reservaActual)}</span></div>
+      <div class="ct-estado-row"><span>5% de la utilidad de este ejercicio</span><span>${money(cincoPorciento)}</span></div>
+      <div class="ct-estado-row ct-estado-subtotal"><span>${espacio > 0 ? 'Reserva legal sugerida este ejercicio' : 'Reserva legal (tope ya alcanzado)'}</span><span>${money(sugerida)}</span></div>
+      <div class="ct-estado-row"><span>Resto a disposición de los socios</span><span>${money(resto)}</span></div>
     </div>
   `;
 }
